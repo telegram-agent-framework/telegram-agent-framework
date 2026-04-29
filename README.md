@@ -13,10 +13,24 @@ Minimal TypeScript Fastify API.
 npm install
 ```
 
-## Development
+Create a `.env` file for local environment variables:
+
+```sh
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+```
+
+## Local Development
 
 ```sh
 npm run dev
+```
+
+This polls Telegram's `getUpdates` endpoint and passes each update to the same handler used by the webhook.
+
+## Webhook Server
+
+```sh
+npm start
 ```
 
 The API listens on `0.0.0.0:3000` by default. Override with `HOST` and `PORT`.
@@ -31,10 +45,4 @@ Expected response:
 
 ```json
 { "status": "ok" }
-```
-
-## Start
-
-```sh
-npm start
 ```
