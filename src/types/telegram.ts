@@ -30,6 +30,15 @@ export type TelegramChat = {
   [key: string]: unknown;
 };
 
+export type TelegramVoice = {
+  file_id: string;
+  file_unique_id: string;
+  duration: number;
+  mime_type?: string;
+  file_size?: number;
+  [key: string]: unknown;
+};
+
 export type TelegramMessage = {
   message_id: number;
   message_thread_id?: number;
@@ -38,6 +47,18 @@ export type TelegramMessage = {
   date: number;
   chat: TelegramChat;
   text?: string;
+  voice?: TelegramVoice;
+  [key: string]: unknown;
+};
+
+export type TelegramCallbackQuery = {
+  id: string;
+  from: TelegramUser;
+  message?: TelegramMessage;
+  inline_message_id?: string;
+  chat_instance: string;
+  data?: string;
+  game_short_name?: string;
   [key: string]: unknown;
 };
 
@@ -49,6 +70,7 @@ export type TelegramUpdate = {
   edited_channel_post?: TelegramMessage;
   business_message?: TelegramMessage;
   edited_business_message?: TelegramMessage;
+  callback_query?: TelegramCallbackQuery;
   [key: string]: unknown;
 };
 
@@ -56,6 +78,26 @@ export type TelegramGetUpdatesResponse =
   | {
       ok: true;
       result: TelegramUpdate[];
+    }
+  | {
+      ok: false;
+      description?: string;
+      error_code?: number;
+      parameters?: Record<string, unknown>;
+    };
+
+export type TelegramFile = {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  file_path?: string;
+  [key: string]: unknown;
+};
+
+export type TelegramGetFileResponse =
+  | {
+      ok: true;
+      result: TelegramFile;
     }
   | {
       ok: false;
@@ -77,6 +119,46 @@ export type TelegramSendMessageResponse =
     };
 
 export type TelegramSendChatActionResponse =
+  | {
+      ok: true;
+      result: true;
+    }
+  | {
+      ok: false;
+      description?: string;
+      error_code?: number;
+      parameters?: Record<string, unknown>;
+    };
+
+export type TelegramInlineKeyboardButton = {
+  text: string;
+  url?: string;
+  callback_data?: string;
+  web_app?: { url: string };
+  switch_inline_query?: string;
+  switch_inline_query_current_chat?: string;
+  [key: string]: unknown;
+};
+
+export type TelegramInlineKeyboardMarkup = {
+  inline_keyboard: TelegramInlineKeyboardButton[][];
+};
+
+export type TelegramReplyMarkup = TelegramInlineKeyboardMarkup;
+
+export type TelegramEditMessageTextResponse =
+  | {
+      ok: true;
+      result: unknown;
+    }
+  | {
+      ok: false;
+      description?: string;
+      error_code?: number;
+      parameters?: Record<string, unknown>;
+    };
+
+export type TelegramAnswerCallbackQueryResponse =
   | {
       ok: true;
       result: true;

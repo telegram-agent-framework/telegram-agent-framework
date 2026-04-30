@@ -1,14 +1,14 @@
+import OpenAI, { toFile } from "openai";
 import { agent } from "../agents/openai.ts";
-import type {
-  TelegramSendChatActionResponse,
-  TelegramSendMessageResponse,
-  TelegramUpdate,
-} from "../types/telegram.ts";
+import { getFile, sendChatAction, sendMessage } from "../telegram/api.ts";
+import type { TelegramUpdate, TelegramVoice } from "../types/telegram.ts";
+
+const openai = new OpenAI();
 
 export async function telegramHandler(update: TelegramUpdate): Promise<void> {
   const message = update.message;
 
-  if (!message?.text) {
+  if (!message?.text && !message?.voice) {
     return;
   }
 
@@ -16,78 +16,59 @@ export async function telegramHandler(update: TelegramUpdate): Promise<void> {
     return;
   }
 
-  await sendTelegramTypingAction(message.chat.id);
+  const chatId = message.chat.id;
 
-  const interval = setInterval(
-    () => sendTelegramTypingAction(message.chat.id),
-    4000,
-  );
+  await sendChatAction(chatId, "typing");
 
-  let responseText: string;
+  if (message.voice) {
+    await sendMessage(
+      chatId,
+      await agent(String(chatId), await transcribeVoice(message.voice)),
+      {
+        // parse_mode: "MarkdownV2",
+      },
+    );
 
-  try {
-    const response = await agent(String(message.chat.id), message.text);
-    responseText = response.trim();
-  } finally {
-    clearInterval(interval);
-  }
-
-  if (!responseText) {
     return;
   }
 
-  await sendTelegramMessage(message.chat.id, responseText);
-}
-
-async function sendTelegramTypingAction(chatId: number): Promise<void> {
-  const response = await fetch(
-    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendChatAction`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        action: "typing",
-      }),
-    },
-  );
-
-  const body = (await response.json()) as TelegramSendChatActionResponse;
-
-  if (!body.ok) {
-    console.error("Telegram sendChatAction failed", {
-      chat_id: chatId,
-      description: body.description,
-      error_code: body.error_code,
+  if (message.text) {
+    await sendMessage(chatId, await agent(String(chatId), message.text), {
+      // parse_mode: "MarkdownV2",
     });
 
-    throw new Error(body.description ?? "Telegram sendChatAction failed.");
+    return;
   }
 }
 
-async function sendTelegramMessage(
-  chatId: number,
-  text: string,
-): Promise<void> {
+async function transcribeVoice(voice: TelegramVoice): Promise<string> {
+  const audio = await downloadTelegramFile(voice.file_id);
+  const file = await toFile(audio, "voice.ogg", {
+    type: voice.mime_type ?? "audio/ogg",
+  });
+
+  const transcription = await openai.audio.transcriptions.create({
+    file,
+    model: "gpt-4o-mini-transcribe",
+  });
+
+  return transcription.text;
+}
+
+async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer> {
+  const file = await getFile(fileId);
+
+  if (!file.file_path) {
+    throw new Error("Telegram getFile response did not include file_path.");
+  }
+
   const response = await fetch(
-    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-      }),
-    },
+    `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`,
   );
 
-  const body = (await response.json()) as TelegramSendMessageResponse;
-
-  if (!body.ok) {
-    throw new Error(body.description ?? "Telegram sendMessage failed.");
+  if (!response.ok) {
+    throw new Error(`Telegram file download failed with ${response.status}.`);
   }
+
+  return response.arrayBuffer();
 }

@@ -1,10 +1,7 @@
 import { tool, type RunContext } from "@openai/agents";
 import { MongoClient, ObjectId, type Collection } from "mongodb";
 import { z } from "zod";
-
-type AgentContext = {
-  sessionId: string;
-};
+import type { AgentContext } from "../types/agent.ts";
 
 type TodoDocument = {
   _id: ObjectId;
