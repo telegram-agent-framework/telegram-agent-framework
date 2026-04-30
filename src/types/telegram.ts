@@ -75,3 +75,15 @@ export type TelegramSendMessageResponse =
       error_code?: number;
       parameters?: Record<string, unknown>;
     };
+
+export type TelegramSendChatActionResponse =
+  | {
+      ok: true;
+      result: true;
+    }
+  | {
+      ok: false;
+      description?: string;
+      error_code?: number;
+      parameters?: Record<string, unknown>;
+    };

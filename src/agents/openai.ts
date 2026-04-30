@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 import { Agent, run } from "@openai/agents";
 import type { AgentInputItem, Session } from "@openai/agents";
 import { MongoClient } from "mongodb";
+import { tools } from "../tools/index.ts";
+
+type AgentContext = {
+  sessionId: string;
+};
 
 type MemoryDocument = {
   created_at: Date;
@@ -21,13 +26,15 @@ export async function agent(sessionId: string, message: string): Promise<string>
     "utf8",
   );
 
-  const assistant = new Agent({
+  const assistant = new Agent<AgentContext>({
     name: "Telegram Agent",
     instructions: instructions.replace(/^---\n[\s\S]*?\n---\n?/, "").trim(),
+    tools,
   });
 
   const result = await run(assistant, message, {
     session: new MongoSession(sessionId),
+    context: { sessionId },
   });
 
   return result.finalOutput ?? "";
@@ -62,16 +69,16 @@ class MongoSession implements Session {
 
     if (limit === undefined) {
       const documents = await collection
-        .find({ sessionId: this.sessionId })
-        .sort({ createdAt: 1, _id: 1 })
+        .find({ session_id: this.sessionId })
+        .sort({ created_at: 1, _id: 1 })
         .toArray();
 
       return documents.map((document) => document.item);
     }
 
     const documents = await collection
-      .find({ sessionId: this.sessionId })
-      .sort({ createdAt: -1, _id: -1 })
+      .find({ session_id: this.sessionId })
+      .sort({ created_at: -1, _id: -1 })
       .limit(limit)
       .toArray();
 
@@ -102,8 +109,8 @@ class MongoSession implements Session {
       .collection<MemoryDocument>("memory");
 
     const result = await collection.findOneAndDelete(
-      { sessionId: this.sessionId },
-      { sort: { createdAt: -1, _id: -1 } },
+      { session_id: this.sessionId },
+      { sort: { created_at: -1, _id: -1 } },
     );
 
     return result?.item;
@@ -114,6 +121,6 @@ class MongoSession implements Session {
       .db("telegram-agent-framework")
       .collection<MemoryDocument>("memory");
 
-    await collection.deleteMany({ sessionId: this.sessionId });
+    await collection.deleteMany({ session_id: this.sessionId });
   }
 }
