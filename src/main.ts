@@ -17,21 +17,10 @@ export async function handleHttp(
   }
 
   const topic = process.env.PUB_SUB_TOPIC || "telegram-updates";
-  const update = request.body as Partial<TelegramUpdate>;
 
-  try {
-    await pubsub.topic(topic).publishMessage({
-      data: Buffer.from(JSON.stringify(request.body)),
-    });
-  } catch (error) {
-    console.error("Failed to publish Telegram update to Pub/Sub", {
-      error,
-      topic,
-      update_id: update.update_id,
-    });
-
-    throw error;
-  }
+  await pubsub.topic(topic).publishMessage({
+    data: Buffer.from(JSON.stringify(request.body)),
+  });
 
   response.status(204).send();
 }
