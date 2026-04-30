@@ -1,28 +1,80 @@
 import "dotenv/config";
-import Fastify from "fastify";
+import type { Request, Response } from "@google-cloud/functions-framework";
+import { PubSub } from "@google-cloud/pubsub";
 import { telegramHandler } from "./handlers/telegram-handler.ts";
 import type { TelegramUpdate } from "./types/telegram.ts";
 
-const app = Fastify({
-  logger: true
-});
+const pubsub = new PubSub();
 
-app.get("/health", async () => {
-  return { status: "ok" };
-});
+export async function handleHttp(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  if (request.method !== "POST") {
+    response.status(405).send("Method Not Allowed");
 
-app.post<{ Body: TelegramUpdate }>("/webhook", async (request, reply) => {
-  await telegramHandler(request.body);
+    return;
+  }
 
-  return reply.status(204).send();
-});
+  const topic = process.env.PUB_SUB_TOPIC || "telegram-updates";
+  const update = request.body as Partial<TelegramUpdate>;
 
-const port = Number(process.env.PORT ?? 3000);
-const host = process.env.HOST ?? "0.0.0.0";
+  try {
+    await pubsub.topic(topic).publishMessage({
+      data: Buffer.from(JSON.stringify(request.body)),
+    });
+  } catch (error) {
+    console.error("Failed to publish Telegram update to Pub/Sub", {
+      error,
+      topic,
+      update_id: update.update_id,
+    });
 
-try {
-  await app.listen({ port, host });
-} catch (error) {
-  app.log.error(error);
-  process.exit(1);
+    throw error;
+  }
+
+  response.status(204).send();
+}
+
+type PubSubCloudEvent = {
+  id?: string;
+  source?: string;
+  type?: string;
+  data?:
+    | string
+    | {
+        data?: string;
+        message?: {
+          data?: string;
+          messageId?: string;
+          publishTime?: string;
+        };
+        subscription?: string;
+      };
+};
+
+export async function handleCloudEvent(
+  cloudEvent: PubSubCloudEvent,
+): Promise<void> {
+  const data = getPubSubMessageData(cloudEvent);
+
+  if (!data) {
+    return;
+  }
+
+  const update = JSON.parse(
+    Buffer.from(data, "base64").toString("utf8"),
+  ) as TelegramUpdate;
+
+  await telegramHandler(update);
+}
+
+function getPubSubMessageData(
+  cloudEvent: PubSubCloudEvent,
+): string | undefined {
+  if (typeof cloudEvent.data === "string") {
+    return cloudEvent.data;
+  }
+
+  return cloudEvent.data?.message?.data ?? cloudEvent.data?.data;
 }

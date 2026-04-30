@@ -7,6 +7,15 @@ dist/
 *.log
 npm-debug.log*
 
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+terraform/.terraform.lock.hcl
+terraform/function-source.zip
+
 .DS_Store
 .idea/
 .vscode/

@@ -34,7 +34,6 @@ while (true) {
   const updates = await getUpdates();
 
   for (const update of updates) {
-    console.log(`update_id: ${update.update_id}`);
     await telegramHandler(update);
 
     offset = update.update_id + 1;

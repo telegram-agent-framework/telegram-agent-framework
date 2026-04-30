@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Agent, run } from "@openai/agents";
+import { Agent, MemorySession, run } from "@openai/agents";
 import type { AgentInputItem, Session } from "@openai/agents";
 import { MongoClient } from "mongodb";
 import { tools } from "../tools/index.ts";
@@ -20,24 +20,34 @@ const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 let mongoClient: MongoClient | undefined;
 
-export async function agent(sessionId: string, message: string): Promise<string> {
+export async function agent(
+  sessionId: string,
+  message: string,
+): Promise<string> {
   const instructions = await readFile(
     resolve(rootDirectory, "prompts/system.md"),
     "utf8",
   );
 
+  const hasMongo = Boolean(process.env.MONGODB_URI);
+
   const assistant = new Agent<AgentContext>({
     name: "Telegram Agent",
     instructions: instructions.replace(/^---\n[\s\S]*?\n---\n?/, "").trim(),
-    tools,
+    model: "gpt-4.1-mini",
+    tools: hasMongo ? tools : [],
   });
 
   const result = await run(assistant, message, {
-    session: new MongoSession(sessionId),
+    session: hasMongo
+      ? new MongoSession(sessionId)
+      : new MemorySession(sessionId),
     context: { sessionId },
   });
 
-  return result.finalOutput ?? "";
+  const finalOutput = result.finalOutput ?? "";
+
+  return finalOutput;
 }
 
 async function getMongoClient(): Promise<MongoClient> {
