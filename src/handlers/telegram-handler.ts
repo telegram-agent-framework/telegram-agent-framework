@@ -88,12 +88,6 @@ async function sendTelegramMessage(
   const body = (await response.json()) as TelegramSendMessageResponse;
 
   if (!body.ok) {
-    console.error("Telegram sendMessage failed", {
-      chat_id: chatId,
-      description: body.description,
-      error_code: body.error_code,
-    });
-
     throw new Error(body.description ?? "Telegram sendMessage failed.");
   }
 }

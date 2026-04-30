@@ -24,7 +24,7 @@ async function getUpdates(): Promise<TelegramUpdate[]> {
   const body = (await response.json()) as TelegramGetUpdatesResponse;
 
   if (!body.ok) {
-    throw new Error("ERROR");
+    throw new Error();
   }
 
   return body.result;
