@@ -30,6 +30,23 @@ export type TelegramChat = {
   [key: string]: unknown;
 };
 
+export type TelegramPhotoSize = {
+  file_id: string;
+  file_unique_id: string;
+  width: number;
+  height: number;
+  file_size?: number;
+};
+
+export type TelegramDocument = {
+  file_id: string;
+  file_unique_id: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+  [key: string]: unknown;
+};
+
 export type TelegramVoice = {
   file_id: string;
   file_unique_id: string;
@@ -48,6 +65,8 @@ export type TelegramMessage = {
   chat: TelegramChat;
   text?: string;
   voice?: TelegramVoice;
+  photo?: TelegramPhotoSize[];
+  document?: TelegramDocument;
   [key: string]: unknown;
 };
 
@@ -109,7 +128,7 @@ export type TelegramGetFileResponse =
 export type TelegramSendMessageResponse =
   | {
       ok: true;
-      result: unknown;
+      result: TelegramMessage;
     }
   | {
       ok: false;
@@ -149,7 +168,7 @@ export type TelegramReplyMarkup = TelegramInlineKeyboardMarkup;
 export type TelegramEditMessageTextResponse =
   | {
       ok: true;
-      result: unknown;
+      result: TelegramMessage;
     }
   | {
       ok: false;
@@ -157,6 +176,14 @@ export type TelegramEditMessageTextResponse =
       error_code?: number;
       parameters?: Record<string, unknown>;
     };
+
+export type TelegramSendPhotoResponse =
+  | { ok: true; result: TelegramMessage }
+  | { ok: false; description?: string; error_code?: number; parameters?: Record<string, unknown> };
+
+export type TelegramSendDocumentResponse =
+  | { ok: true; result: TelegramMessage }
+  | { ok: false; description?: string; error_code?: number; parameters?: Record<string, unknown> };
 
 export type TelegramAnswerCallbackQueryResponse =
   | {

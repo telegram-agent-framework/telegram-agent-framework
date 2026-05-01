@@ -4,9 +4,12 @@ import type {
   TelegramFile,
   TelegramGetFileResponse,
   TelegramGetUpdatesResponse,
+  TelegramMessage,
   TelegramReplyMarkup,
   TelegramSendChatActionResponse,
+  TelegramSendDocumentResponse,
   TelegramSendMessageResponse,
+  TelegramSendPhotoResponse,
   TelegramUpdate,
 } from "../types/telegram.ts";
 
@@ -66,7 +69,7 @@ export async function sendMessage(
     parse_mode?: "MarkdownV2" | "HTML";
     reply_markup?: TelegramReplyMarkup;
   },
-): Promise<void> {
+): Promise<TelegramMessage> {
   const body = await post<TelegramSendMessageResponse>("sendMessage", {
     chat_id: chatId,
     text,
@@ -76,6 +79,8 @@ export async function sendMessage(
   if (!body.ok) {
     throw new Error(body.description ?? "Telegram sendMessage failed.");
   }
+
+  return body.result;
 }
 
 export async function editMessageText(
@@ -86,7 +91,7 @@ export async function editMessageText(
     parse_mode?: "MarkdownV2" | "HTML";
     reply_markup?: TelegramReplyMarkup;
   },
-): Promise<void> {
+): Promise<TelegramMessage> {
   const body = await post<TelegramEditMessageTextResponse>("editMessageText", {
     chat_id: chatId,
     message_id: messageId,
@@ -97,6 +102,52 @@ export async function editMessageText(
   if (!body.ok) {
     throw new Error(body.description ?? "Telegram editMessageText failed.");
   }
+
+  return body.result;
+}
+
+export async function sendPhoto(
+  chatId: number,
+  photo: string,
+  options?: {
+    caption?: string;
+    parse_mode?: "MarkdownV2" | "HTML";
+    reply_markup?: TelegramReplyMarkup;
+  },
+): Promise<TelegramMessage> {
+  const body = await post<TelegramSendPhotoResponse>("sendPhoto", {
+    chat_id: chatId,
+    photo,
+    ...options,
+  });
+
+  if (!body.ok) {
+    throw new Error(body.description ?? "Telegram sendPhoto failed.");
+  }
+
+  return body.result;
+}
+
+export async function sendDocument(
+  chatId: number,
+  document: string,
+  options?: {
+    caption?: string;
+    parse_mode?: "MarkdownV2" | "HTML";
+    reply_markup?: TelegramReplyMarkup;
+  },
+): Promise<TelegramMessage> {
+  const body = await post<TelegramSendDocumentResponse>("sendDocument", {
+    chat_id: chatId,
+    document,
+    ...options,
+  });
+
+  if (!body.ok) {
+    throw new Error(body.description ?? "Telegram sendDocument failed.");
+  }
+
+  return body.result;
 }
 
 export async function answerCallbackQuery(
